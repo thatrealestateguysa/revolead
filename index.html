@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RevoLead — Part 1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="RevoLead — Lead Gen App (Part 1): Contacts, CSV import, search, bulk WhatsApp & email with scripts."/>
+  <!-- App icons for web/desktop/mobile -->
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/icon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon.png"/>
+  <link rel="icon" type="image/png" sizes="48x48" href="assets/icon.png"/>
+  <link rel="icon" type="image/png" sizes="96x96" href="assets/icon.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icon.png"/>
+  <meta name="theme-color" content="#0a0a0a"/>
+  <meta property="og:image" content="assets/icon.png" />
+  <style>
+    .btn { @apply px-3 py-2 rounded-xl shadow-sm border text-sm font-medium; }
+    .btn-primary { @apply bg-red-600 text-white border-red-700 hover:bg-red-700; }
+    .btn-ghost { @apply bg-neutral-800 text-white border-neutral-700 hover:bg-neutral-700; }
+    .badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-200; }
+    .field { @apply block w-full rounded-xl border bg-neutral-900 border-neutral-700 text-white placeholder-neutral-400 p-2.5 focus:outline-none focus:ring-2 focus:ring-red-500; }
+    .label { @apply text-xs font-semibold text-neutral-300 uppercase; }
+    .section { @apply bg-neutral-900 rounded-2xl shadow-sm border border-neutral-800 p-4 md:p-6; }
+    .tab { @apply px-4 py-2 rounded-xl text-sm font-semibold text-neutral-700 hover:bg-neutral-200; }
+    .tab-active { @apply bg-neutral-900 text-white; }
+    .tabbar { @apply inline-flex items-center gap-1 bg-white text-neutral-900 p-1 rounded-2xl border border-neutral-800; }
+  </style>
+</head>
+<body class="bg-neutral-950 text-white">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-6">
+    <header class="flex items-center justify-between gap-4 mb-6 bg-white text-neutral-900 rounded-2xl border border-neutral-800 px-4 py-4 shadow-sm">
+      <div class="flex items-center gap-3">
+        <img src="assets/logo.jpg" alt="RevoLead" class="h-10 md:h-12 object-contain select-none"/>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <div id="userBadge" class="hidden items-center gap-2 text-sm bg-neutral-200 text-neutral-800 rounded-xl px-2 py-1">
+          <span id="userNameBadge" class="font-medium"></span>
+          <button id="signOutBtn" class="btn btn-ghost !px-2 !py-1">Sign out</button>
+        </div>
+        <button id="signInBtn" class="btn btn-ghost">Sign In</button>
+        <button id="openDataBtn" class="btn btn-ghost">Data Source</button>
+        <button id="downloadTemplateBtn" class="btn btn-ghost">Download CSV Template</button>
+        <label class="btn btn-ghost cursor-pointer">
+          <input id="csvFileInput" type="file" accept=".csv" class="hidden" />
+          Import CSV
+        </label>
+        <button id="addContactToggle" class="btn btn-primary">Add Contact</button>
+      </div>
+    </header>
+
+    <nav id="topTabs" class="mb-4">
+      <div class="tabbar">
+        <button id="tabContacts" class="tab tab-active" type="button">Contacts</button>
+        <button id="tabBulk" class="tab" type="button">Bulk</button>
+      </div>
+    </nav>
+
+    <div id="contactsTab">
+      <section id="contactFormWrap" class="section hidden">
+        <div class="flex items-start justify-between">
+          <h2 id="formTitle" class="text-lg font-semibold">Add Contact</h2>
+          <button id="closeForm" class="text-neutral-300 hover:text-white">✕</button>
+        </div>
+        <form id="contactForm" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input type="hidden" id="contactId" />
+          <div>
+            <label class="label">Name</label>
+            <input id="firstName" class="field" placeholder="e.g. Dawie" required />
+          </div>
+          <div>
+            <label class="label">Surname</label>
+            <input id="lastName" class="field" placeholder="e.g. du Toit" required />
+          </div>
+          <div>
+            <label class="label">Email</label>
+            <input id="email" class="field" type="email" placeholder="name@example.com" />
+          </div>
+          <div>
+            <label class="label">Mobile</label>
+            <input id="mobile" class="field" placeholder="+27… or 0…" />
+          </div>
+          <div>
+            <label class="label">Birthday</label>
+            <input id="birthday" class="field" type="date" />
+          </div>
+          <div>
+            <label class="label">ID Number</label>
+            <input id="idNumber" class="field" placeholder="ID / Passport" />
+          </div>
+          <div class="md:col-span-3">
+            <label class="label">Tags & Labels (comma‑separated)</label>
+            <input id="tags" class="field" placeholder="buyer, hot, investor" />
+          </div>
+          <div class="md:col-span-3">
+            <label class="label">Address</label>
+            <input id="address" class="field" placeholder="Full address" />
+          </div>
+          <div>
+            <label class="label">Suburb</label>
+            <input id="suburb" class="field" placeholder="e.g. Fourways" />
+          </div>
+          <div>
+            <label class="label">Street</label>
+            <input id="street" class="field" placeholder="e.g. Roos St" />
+          </div>
+          <div>
+            <label class="label">Last Contact</label>
+            <input id="lastContact" class="field" type="datetime-local" />
+          </div>
+          <div class="md:col-span-3 flex gap-3">
+            <button class="btn btn-primary" type="submit">Save Contact</button>
+            <button id="resetForm" class="btn btn-ghost" type="button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="section mt-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">Contacts</h2>
+          <div class="text-sm text-neutral-300 space-x-4">
+            <span>Selected: <span id="selectedCount">0</span></span>
+            <span>Matches: <span id="matchCountHead">0</span></span>
+          </div>
+        </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-neutral-800 text-neutral-200">
+              <tr>
+                <th class="p-2 align-bottom"><input id="selectAll" type="checkbox"/></th>
+                <th class="p-2 text-left align-bottom">Name</th>
+                <th class="p-2 text-left align-bottom">Surname</th>
+                <th class="p-2 text-left align-bottom">Email</th>
+                <th class="p-2 text-left align-bottom">Mobile</th>
+                <th class="p-2 text-left align-bottom">Birthday</th>
+                <th class="p-2 text-left align-bottom">ID Number</th>
+                <th class="p-2 text-left align-bottom">Tags</th>
+                <th class="p-2 text-left align-bottom">Address</th>
+                <th class="p-2 text-left align-bottom">Suburb</th>
+                <th class="p-2 text-left align-bottom">Street</th>
+                <th class="p-2 text-left align-bottom">Last Contact</th>
+                <th class="p-2 text-left align-bottom">Actions</th>
+              </tr>
+              <tr>
+                <th class="p-2"></th>
+                <th class="p-2"><input id="fName" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fSurname" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fEmail" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fMobile" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fBirthday" type="date" class="field py-1"/></th>
+                <th class="p-2"><input id="fIdNumber" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fTags" class="field py-1" placeholder="tag, tag"/></th>
+                <th class="p-2"><input id="fAddress" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fSuburb" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fStreet" class="field py-1" placeholder="Search…"/></th>
+                <th class="p-2"><input id="fLastContact" type="date" class="field py-1"/></th>
+                <th class="p-2"></th>
+              </tr>
+            </thead>
+            <tbody id="contactsTbody" class="divide-y divide-neutral-800"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section id="bulkTab" class="section mt-6 hidden">
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold">Send Options</h2>
+          <p class="text-sm text-neutral-300">Use selected contacts below. Scripts support tokens like <span class="badge">{{Name}}</span>, <span class="badge">{{Surname}}</span>, <span class="badge">{{FullName}}</span>, <span class="badge">{{Suburb}}</span>.</p>
+        </div>
+        <div class="text-sm text-neutral-300">Selected recipients: <span id="sendSelectedCount">0</span></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+        <div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="label">Select Script</label>
+              <select id="scriptSelect" class="field"></select>
+            </div>
+            <div class="flex items-end gap-2">
+              <button id="newScriptBtn" class="btn btn-ghost">New Script</button>
+              <button id="editScriptBtn" class="btn btn-ghost">Edit</button>
+              <button id="deleteScriptBtn" class="btn btn-ghost">Delete</button>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="label">Email Subject (optional)</label>
+            <input id="emailSubject" class="field" placeholder="Subject for bulk email" />
+          </div>
+          <div class="mt-3">
+            <label class="label">Message Preview</label>
+            <textarea id="messagePreview" class="field h-36" placeholder="Message body using the selected script…"></textarea>
+            <p class="text-xs text-neutral-400 mt-1">Preview shows for the first selected contact. Final messages are personalized per contact.</p>
+          </div>
+        </div>
+
+        <div>
+          <div class="grid grid-cols-1 gap-2">
+            <button id="genWhatsAppBtn" class="btn btn-primary">Bulk WhatsApp — Generate Links</button>
+            <button id="openAllWA" class="btn btn-ghost">Open All WhatsApp Chats (may be blocked)</button>
+            <button id="copyWAMessages" class="btn btn-ghost">Copy All WhatsApp Messages</button>
+            <hr class="my-2">
+            <button id="composeEmailBtn" class="btn btn-primary">Bulk Email — Compose (mailto)</button>
+            <button id="copyEmailList" class="btn btn-ghost">Copy BCC Email List</button>
+            <button id="markContacted" class="btn btn-ghost">Mark Selected as Contacted Now</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="text-sm font-semibold">Generated WhatsApp Links</h3>
+        <div id="waLinks" class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+      </div>
+    </section>
+
+    <footer class="py-8 text-center text-xs text-neutral-400">RevoLead · Part 1 · Local or Google Sheet (per‑user tab)</footer>
+  </div>
+
+  <dialog id="scriptModal" class="rounded-2xl p-0 w-11/12 md:w-2/3 lg:w-1/2">
+    <form method="dialog" class="section !m-0">
+      <h3 id="scriptModalTitle" class="text-lg font-semibold">New Script</h3>
+      <div class="mt-4 grid grid-cols-1 gap-3">
+        <div>
+          <label class="label">Script Name</label>
+          <input id="scriptName" class="field" placeholder="e.g. Intro — Check-in" required />
+        </div>
+        <div>
+          <label class="label">Default Subject (optional)</label>
+          <input id="scriptSubject" class="field" placeholder="e.g. Quick check-in" />
+        </div>
+        <div>
+          <label class="label">Script Body</label>
+          <textarea id="scriptBody" class="field h-44" placeholder="Hi {{Name}}, …"></textarea>
+          <p class="text-xs text-neutral-400 mt-1">Tokens: {{Name}}, {{Surname}}, {{FullName}}, {{Suburb}}, {{Mobile}}</p>
+        </div>
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="cancelScript" class="btn btn-ghost" value="cancel">Cancel</button>
+        <button id="saveScript" class="btn btn-primary" value="default">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="loginModal" class="rounded-2xl p-0 w-11/12 md:w-1/2">
+    <form method="dialog" class="section !m-0">
+      <h3 class="text-lg font-semibold">Sign In</h3>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="md:col-span-2">
+          <label class="label">Email</label>
+          <input id="loginEmail" class="field" type="email" placeholder="you@example.com" required />
+        </div>
+        <div>
+          <label class="label">Name</label>
+          <input id="loginName" class="field" placeholder="Your name" required />
+        </div>
+        <div>
+          <label class="label">Mobile</label>
+          <input id="loginMobile" class="field" placeholder="+27… or 0…" required />
+        </div>
+      </div>
+      <p class="text-xs text-neutral-400 mt-2">Used only to route to your personal sheet tab. Not a secure login.</p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="cancelLogin" class="btn btn-ghost" value="cancel">Cancel</button>
+        <button id="confirmLogin" class="btn btn-primary" value="default">Sign In</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dataModal" class="rounded-2xl p-0 w-11/12 md:w-3/4 lg:w-1/2">
+    <form method="dialog" class="section !m-0">
+      <h3 class="text-lg font-semibold">Data Source</h3>
+      <p class="text-sm text-neutral-300 mt-1">Use <span class="badge">Local</span> for offline, or connect a <span class="badge">Google Sheet</span> via Apps Script. Each user keeps their own tab in the central sheet.</p>
+
+      <div class="mt-4 grid grid-cols-1 gap-4">
+        <div class="flex items-center gap-4">
+          <label class="inline-flex items-center gap-2"><input type="radio" name="storageMode" value="local" id="storageLocal"><span>Local (browser)</span></label>
+          <label class="inline-flex items-center gap-2"><input type="radio" name="storageMode" value="sheet" id="storageSheet"><span>Google Sheet (Apps Script)</span></label>
+        </div>
+
+        <div id="sheetConfig" class="grid grid-cols-1 gap-3 hidden">
+          <div>
+            <label class="label">Spreadsheet URL</label>
+            <input id="sheetUrl" class="field" placeholder="Paste Google Sheet URL"/>
+          </div>
+          <div>
+            <label class="label">Sheet Name (tab)</label>
+            <input id="sheetName" class="field" placeholder="Contacts"/>
+          </div>
+          <div>
+            <label class="label">Apps Script Web App URL</label>
+            <input id="webAppUrl" class="field" placeholder="https://script.google.com/macros/s/…/exec"/>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="btnLoadFromSheet" class="btn btn-ghost" value="default">Load from Sheet</button>
+            <button id="btnSaveToSheet" class="btn btn-primary" value="default">Save to Sheet</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="cancelData" class="btn btn-ghost" value="cancel">Close</button>
+        <button id="saveData" class="btn btn-primary" value="default">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const $ = (s, r=document)=>r.querySelector(s);
+    const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+    const uid = ()=> 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+
+    const STORAGE = { contacts:'revoLead_contacts_v1', scripts:'revoLead_scripts_v1', settings:'revoLead_settings_v1', user:'revoLead_user_v1' };
+
+    const DEFAULT_SCRIPTS = [
+      { id: uid(), name: 'Intro — Buyer/Seller Check‑in', subject: 'Quick property check‑in', body: 'Hi {{Name}}, it\'s Dawie from Keller Williams Explore. Just touching base — are you planning any property moves in {{Suburb}} this year? If you\'d like an updated valuation or area insights, I\'m happy to help.\n\nBest,\nDawie' },
+      { id: uid(), name: 'Open House Invite', subject: 'You\'re invited: Open House', body: 'Hi {{FullName}}, quick invite to an open house in {{Suburb}}. Reply “YES” and I\'ll send details. — Dawie' }
+    ];
+
+    const pad2 = n=> String(n).padStart(2,'0');
+    const fmtDateTimeLocal = dt=>{ if(!dt) return ''; const d=new Date(dt); if(Number.isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+    const toLocalInputValue = dt=>{ if(!dt) return ''; const d=new Date(dt); if(Number.isNaN(d.getTime())) return ''; return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+    const normalizePhoneSA = raw=>{ if(!raw) return ''; const digits=raw.replace(/\D+/g,''); if(!digits) return ''; if(digits.startsWith('27') && digits.length>=11) return '+'+digits; if(digits.startsWith('0') && digits.length===10) return '+27'+digits.slice(1); if(raw.trim().startsWith('+')) return raw.trim(); return raw.trim(); };
+    const tokenize = (str,c)=>{ const full=[c.firstName,c.lastName].filter(Boolean).join(' ').trim(); return (str||'').replace(/\{\{\s*Name\s*\}\}/g,c.firstName||'').replace(/\{\{\s*Surname\s*\}\}/g,c.lastName||'').replace(/\{\{\s*FullName\s*\}\}/g,full).replace(/\{\{\s*Suburb\s*\}\}/g,c.suburb||'').replace(/\{\{\s*Mobile\s*\}\}/g,c.mobile||''); };
+    const saveLocal=(k,v)=>localStorage.setItem(k, JSON.stringify(v));
+    const loadLocal=(k,fb)=>{ try{ const v=JSON.parse(localStorage.getItem(k)); return v??fb; } catch { return fb; } };
+    const isMoreComplete=(a,b)=>{ const s=c=>Object.values(c).reduce((t,v)=>t+(v?1:0),0); return s(a)>=s(b); };
+    const escapeHtml=s=>(s??'').toString().replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+    let contacts = loadLocal(STORAGE.contacts, []);
+    let scripts = loadLocal(STORAGE.scripts, null) || DEFAULT_SCRIPTS; saveLocal(STORAGE.scripts, scripts);
+    let settings = loadLocal(STORAGE.settings, { mode:'sheet', sheetUrl:'', sheetId:'', sheetName:'Contacts', webAppUrl:'https://script.google.com/macros/s/AKfycbxnyly0KVZxWw0xOygL8KUpRMgRPZ7Rs6zTO6VjGrSGry6xtmslHbYWOS2f0pQ1WtP2Dw/exec' });
+    let currentUser = loadLocal(STORAGE.user, null);
+
+    let filters = { name:'', surname:'', email:'', mobile:'', birthday:'', idNumber:'', tags:'', address:'', suburb:'', street:'', lastContactDate:'' };
+    let selectedIds = new Set();
+
+    function renderScripts(){ const sel=document.querySelector('#scriptSelect'); if(!sel) return; sel.innerHTML=''; scripts.forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.name; sel.appendChild(o); }); if(scripts.length) sel.value=scripts[0].id; updatePreview(); }
+    function renderContacts(){ const tbody=document.querySelector('#contactsTbody'); if(!tbody) return; tbody.innerHTML=''; const rows=contacts.filter(c=>filterContact(c)); document.querySelector('#matchCountHead').textContent=`${rows.length} match${rows.length===1?'':'es'}`; rows.forEach(c=>{ const tr=document.createElement('tr'); tr.innerHTML=`
+      <td class="p-2 align-top"><input type="checkbox" data-id="${c.id}" class="rowSel" ${selectedIds.has(c.id)?'checked':''}/></td>
+      <td class="p-2 align-top font-medium">${escapeHtml(c.firstName)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.lastName)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.email)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.mobile)}</td>
+      <td class="p-2 align-top">${(c.birthday||'').slice(0,10)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.idNumber)}</td>
+      <td class="p-2 align-top">${(c.tags||[]).map(t=>`<span class='badge mr-1 mb-1'>${escapeHtml(t)}</span>`).join('')}</td>
+      <td class="p-2 align-top">${escapeHtml(c.address)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.suburb)}</td>
+      <td class="p-2 align-top">${escapeHtml(c.street)}</td>
+      <td class="p-2 align-top">${fmtDateTimeLocal(c.lastContact)}</td>
+      <td class="p-2 align-top"><div class="flex gap-2">
+        <button class="btn btn-ghost text-xs" data-act="edit" data-id="${c.id}">Edit</button>
+        <button class="btn btn-ghost text-xs" data-act="mark" data-id="${c.id}">Mark Now</button>
+        <button class="btn btn-ghost text-xs" data-act="del" data-id="${c.id}">Delete</button>
+      </div></td>`; tbody.appendChild(tr); }); updateSelectedCounts(); }
+    function filterContact(c){ const ic=s=>(s||'').toLowerCase(); if(filters.name && !ic(c.firstName).includes(ic(filters.name))) return false; if(filters.surname && !ic(c.lastName).includes(ic(filters.surname))) return false; if(filters.email && !ic(c.email).includes(ic(filters.email))) return false; if(filters.mobile && !ic(c.mobile).includes(ic(filters.mobile))) return false; if(filters.birthday && (c.birthday||'').slice(0,10)!==filters.birthday) return false; if(filters.idNumber && !ic(c.idNumber).includes(ic(filters.idNumber))) return false; if(filters.tags){ const want=ic(filters.tags).split(',').map(s=>s.trim()).filter(Boolean); const have=(c.tags||[]).map(t=>t.toLowerCase()); if(!want.every(t=>have.some(h=>h.includes(t)))) return false; } if(filters.address && !ic(c.address).includes(ic(filters.address))) return false; if(filters.suburb && !ic(c.suburb).includes(ic(filters.suburb))) return false; if(filters.street && !ic(c.street).includes(ic(filters.street))) return false; if(filters.lastContactDate){ const lc=(c.lastContact||'').slice(0,10); if(lc!==filters.lastContactDate) return false; } return true; }
+    function updateSelectedCounts(){ document.querySelector('#selectedCount').textContent=String(selectedIds.size); const filtered=new Set(contacts.filter(c=>filterContact(c)).map(c=>c.id)); const count=[...selectedIds].filter(id=>filtered.has(id)).length; document.querySelector('#sendSelectedCount').textContent=String(count); document.querySelector('#selectAll').checked = count>0 && count === [...filtered].length; }
+
+    function currentScript(){ const sel=document.querySelector('#scriptSelect'); if(!sel) return null; return scripts.find(s=>s.id===sel.value)||null; }
+    function updatePreview(){ const sc=currentScript(); if(!sc) return; const firstSel=[...selectedIds][0]; const c=contacts.find(x=>x.id===firstSel)||contacts[0]||{}; const subj=document.querySelector('#emailSubject'); if(subj && !subj.value) subj.value=sc.subject||''; document.querySelector('#messagePreview').value = tokenize(sc.body||'', c); }
+    function generateWhatsAppLinks(){ const sc=currentScript(); if(!sc) return alert('Select a script first'); const wrap=document.querySelector('#waLinks'); wrap.innerHTML=''; const targets=contacts.filter(c=>selectedIds.has(c.id) && c.mobile); if(!targets.length) return alert('Select contacts first'); targets.forEach(c=>{ const msg=tokenize(sc.body||'', c); const num=normalizePhoneSA(c.mobile||''); const url='https://wa.me/'+encodeURIComponent(num.replace(/\D/g,''))+'?text='+encodeURIComponent(msg); const row=document.createElement('div'); row.className='section !p-3 flex items-center justify-between gap-2'; row.innerHTML=`<div class="text-sm"><div class="font-medium">${escapeHtml(c.firstName||'')} ${escapeHtml(c.lastName||'')}</div><div class="text-neutral-400">${escapeHtml(num)}</div></div><div class="flex gap-2"><a class="btn btn-primary" target="_blank" rel="noopener" href="${url}">Open</a><button class="btn btn-ghost" data-copy="${msg.replace(/"/g,'&quot;')}">Copy Message</button></div>`; wrap.appendChild(row); }); }
+    function openAllWhatsApp(){ Array.from(document.querySelectorAll('#waLinks a')).forEach(a=>window.open(a.href,'_blank')); }
+    async function copyAllWhatsAppMessages(){ const msgs=Array.from(document.querySelectorAll('#waLinks button[data-copy]')).map(b=>b.dataset.copy).join('\n\n---\n\n'); await navigator.clipboard.writeText(msgs||''); alert('Copied messages to clipboard.'); }
+    function composeBulkEmail(){ const sc=currentScript(); const subject=(document.querySelector('#emailSubject').value||sc?.subject||'').trim(); const body=(sc?sc.body:(document.querySelector('#messagePreview').value||'')); const targets=contacts.filter(c=>selectedIds.has(c.id)&&c.email); const bcc=targets.map(c=>c.email).join(','); const url='mailto:?bcc='+encodeURIComponent(bcc)+'&subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body); window.location.href=url; }
+    async function copyEmailList(){ const targets=contacts.filter(c=>selectedIds.has(c.id)&&c.email); const list=targets.map(c=>c.email).join(','); await navigator.clipboard.writeText(list); alert('Copied email list.'); }
+    function markSelectedContactedNow(){ const now=new Date().toISOString(); contacts.forEach(c=>{ if(selectedIds.has(c.id)) c.lastContact=now; }); localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); }
+
+    function upsertContact(data){ const idx=contacts.findIndex(c=>c.id===data.id); if(idx>=0) contacts[idx]=data; else contacts.push(data); localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); }
+    function deleteContact(id){ contacts=contacts.filter(c=>c.id!==id); selectedIds.delete(id); localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); }
+    function loadToForm(c){ document.querySelector('#contactId').value=c.id||''; document.querySelector('#firstName').value=c.firstName||''; document.querySelector('#lastName').value=c.lastName||''; document.querySelector('#email').value=c.email||''; document.querySelector('#mobile').value=c.mobile||''; document.querySelector('#birthday').value=(c.birthday||'').slice(0,10); document.querySelector('#idNumber').value=c.idNumber||''; document.querySelector('#tags').value=(c.tags||[]).join(', '); document.querySelector('#address').value=c.address||''; document.querySelector('#suburb').value=c.suburb||''; document.querySelector('#street').value=c.street||''; document.querySelector('#lastContact').value=toLocalInputValue(c.lastContact); showForm(true, c.id ? 'Edit Contact' : 'Add Contact'); }
+    function formToData(){ const id=document.querySelector('#contactId').value || uid(); const firstName=document.querySelector('#firstName').value.trim(); const lastName=document.querySelector('#lastName').value.trim(); const email=document.querySelector('#email').value.trim(); const mobile=document.querySelector('#mobile').value.trim(); const birthday=document.querySelector('#birthday').value || ''; const idNumber=document.querySelector('#idNumber').value.trim(); const tags=document.querySelector('#tags').value.split(',').map(s=>s.trim()).filter(Boolean); const address=document.querySelector('#address').value.trim(); const suburb=document.querySelector('#suburb').value.trim(); const street=document.querySelector('#street').value.trim(); const lastContact=document.querySelector('#lastContact').value ? new Date(document.querySelector('#lastContact').value).toISOString() : ''; const mobileNorm=normalizePhoneSA(mobile); return { id, firstName, lastName, email, mobile: mobileNorm || mobile, birthday, idNumber, tags, address, suburb, street, lastContact }; }
+    function showForm(show, title='Add Contact'){ document.querySelector('#contactFormWrap').classList.toggle('hidden', !show); document.querySelector('#formTitle').textContent=title; }
+
+    function downloadTemplate(){ const headers=['Name','Surname','Email','Mobile','Birthday','ID Number','Tags','Address','Suburb','Street','Last Contact']; const sample=[ ['Dawie','du Toit','dawie@example.com','0821234567','1990-05-10','9005105800081','buyer, hot','32 Roos St, Fourways Golf Park','Fourways','Roos St',''], ['Elca','Minnaar','elca@example.com','0712345678','','','','','Fourways','',''] ]; const csv=[headers.join(',')].concat(sample.map(r=>r.map(csvEscape).join(','))).join('\n'); triggerDownload(csv,'revolead_template.csv','text/csv'); }
+    const csvEscape=v=>{ if(v==null) return ''; const s=String(v); return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+    function triggerDownload(content, filename, mime='text/plain'){ const blob=new Blob([content],{type:mime}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+    function parseCSV(text){ const rows=[]; let i=0, field='', row=[], inQuotes=false; while(i<text.length){ const ch=text[i]; if(inQuotes){ if(ch=='"'){ if(text[i+1]=='"'){ field+='"'; i++; } else { inQuotes=false; } } else { field+=ch; } } else { if(ch=='"'){ inQuotes=true; } else if(ch==','){ row.push(field); field=''; } else if(ch=='\n' || ch=='\r'){ if(field!='' || row.length){ row.push(field); rows.push(row); row=[]; field=''; } if(ch=='\r' && text[i+1]=='\n') i++; } else { field+=ch; } } i++; } if(field!='' || row.length){ row.push(field); rows.push(row); } return rows; }
+    function importCSV(text){ const rows=parseCSV(text); if(!rows.length) return 0; const header=rows[0].map(h=>h.trim().toLowerCase()); const idx=name=>header.indexOf(name.toLowerCase()); const get=(r,name)=>{ const i=idx(name); return i>=0 ? (r[i]||'').trim() : ''; }; let added=0; for(let r=1;r<rows.length;r++){ const row=rows[r]; if(!row || row.every(v=>!v)) continue; const data={ id: uid(), firstName:get(row,'name'), lastName:get(row,'surname'), email:get(row,'email'), mobile: normalizePhoneSA(get(row,'mobile')), birthday:get(row,'birthday'), idNumber:get(row,'id number'), tags:(get(row,'tags')||'').split(',').map(s=>s.trim()).filter(Boolean), address:get(row,'address'), suburb:get(row,'suburb'), street:get(row,'street'), lastContact: get(row,'last contact') ? new Date(get(row,'last contact')).toISOString() : '' }; const matchIdx=contacts.findIndex(c=> (c.firstName?.toLowerCase()==data.firstName.toLowerCase() && c.lastName?.toLowerCase()==data.lastName.toLowerCase() && ((c.mobile && data.mobile && c.mobile==data.mobile) || (c.email && data.email && c.email.toLowerCase()==data.email.toLowerCase())))); if(matchIdx>=0){ const merged={...contacts[matchIdx], ...data}; if(isMoreComplete(merged, contacts[matchIdx])) contacts[matchIdx]=merged; } else { contacts.push(data); added++; } } localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); return added; }
+
+    async function loadFromSheet(){ try{ if(settings.mode!=='sheet') throw new Error('Set storage to Sheet first'); if(!settings.webAppUrl) throw new Error('Missing Web App URL'); const url = settings.webAppUrl + '?sheet=' + encodeURIComponent(settings.sheetName||'Contacts'); const res = await fetch(url, { method:'GET' }); const data = await res.json(); if(data.error) throw new Error(data.error); const rows = Array.isArray(data.rows) ? data.rows : []; const map = (r)=>({ id: r.id||uid(), firstName:r.firstName||'', lastName:r.lastName||'', email:r.email||'', mobile:r.mobile||'', birthday:r.birthday||'', idNumber:r.idNumber||'', tags: (typeof r.tags==='string'? r.tags.split(',').map(s=>s.trim()).filter(Boolean) : (r.tags||[])), address:r.address||'', suburb:r.suburb||'', street:r.street||'', lastContact:r.lastContact||'' }); contacts = rows.map(map); localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); alert('Loaded ' + contacts.length + ' contact' + (contacts.length==1?'':'s') + ' from Sheet.'); } catch(err){ alert('Load failed: '+ err.message); } }
+    async function saveToSheet(){ try{ if(settings.mode!=='sheet') throw new Error('Set storage to Sheet first'); if(!settings.webAppUrl) throw new Error('Missing Web App URL'); const payload = { sheet: settings.sheetName||'Contacts', mode:'replace', rows: contacts }; const res = await fetch(settings.webAppUrl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body: 'data='+encodeURIComponent(JSON.stringify(payload)) }); const data = await res.json(); if(data.error) throw new Error(data.error); alert('Saved ' + (data.count if 'count' in data else len(contacts)) + ' contacts to Sheet.'); } catch(err){ alert('Save failed: '+ err.message); } }
+
+    function refreshUserUI(){ const badge=document.querySelector('#userBadge'); const nameSpan=document.querySelector('#userNameBadge'); const signInBtn=document.querySelector('#signInBtn'); if(currentUser){ nameSpan.textContent=(currentUser.name||'User') + ' (' + (currentUser.mobile || currentUser.email || '') + ')'; badge.classList.remove('hidden'); signInBtn.classList.add('hidden'); settings.mode='sheet'; settings.sheetName = (currentUser.name||'user').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24) + '_' + String((currentUser.mobile||'').replace(/\D/g,'')).slice(-4); localStorage.setItem(STORAGE.settings, JSON.stringify(settings)); if(settings.webAppUrl){ loadFromSheet(); } } else { badge.classList.add('hidden'); signInBtn.classList.remove('hidden'); } }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      renderScripts(); renderContacts();
+      const contactsTab=document.querySelector('#contactsTab'); const bulkTab=document.querySelector('#bulkTab'); const tabContacts=document.querySelector('#tabContacts'); const tabBulk=document.querySelector('#tabBulk');
+      const activateTab=(w)=>{ const b=(w==='bulk'); contactsTab.classList.toggle('hidden', b); bulkTab.classList.toggle('hidden', !b); tabContacts.classList.toggle('tab-active', !b); tabBulk.classList.toggle('tab-active', b); updateSelectedCounts(); if(b) updatePreview(); };
+      tabContacts.addEventListener('click', ()=>activateTab('contacts'));
+      tabBulk.addEventListener('click', ()=>activateTab('bulk'));
+
+      document.querySelector('#downloadTemplateBtn').addEventListener('click', downloadTemplate);
+      document.querySelector('#csvFileInput').addEventListener('change', (e)=>{ const f=e.target.files and e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const added=importCSV(String(r.result or '')); alert('Imported ' + added + ' new contact' + (added==1?'':'s') + '.'); e.target.value=''; }; r.readAsText(f); });
+      document.querySelector('#addContactToggle').addEventListener('click', ()=>{ loadToForm({}); });
+
+      document.querySelector('#closeForm').addEventListener('click', ()=>showForm(false));
+      document.querySelector('#resetForm').addEventListener('click', ()=>loadToForm({ id: document.querySelector('#contactId').value }));
+      document.querySelector('#contactForm').addEventListener('submit', (e)=>{ e.preventDefault(); const data=formToData(); if(!data.firstName||!data.lastName){ alert('Name and Surname are required.'); return; } if(!data.email && !data.mobile){ if(!confirm('No email or mobile captured. Save anyway?')) return; } upsertContact(data); showForm(false); });
+
+      const map=[ ['fName','name'], ['fSurname','surname'], ['fEmail','email'], ['fMobile','mobile'], ['fBirthday','birthday'], ['fIdNumber','idNumber'], ['fTags','tags'], ['fAddress','address'], ['fSuburb','suburb'], ['fStreet','street'], ['fLastContact','lastContactDate'] ];
+      map.forEach(([id,key])=>{ const el=document.getElementById(id); if(!el) return; const h=(e)=>{ filters[key]=e.target.value.trim(); renderContacts(); }; el.addEventListener('input', h); el.addEventListener('change', h); });
+
+      document.querySelector('#contactsTbody').addEventListener('click', (e)=>{ const btn=e.target.closest('button'); const cb=e.target.closest('input.rowSel'); if(cb){ const id=cb.dataset.id; cb.checked?selectedIds.add(id):selectedIds.delete(id); updateSelectedCounts(); return; } if(!btn) return; const id=btn.dataset.id; const act=btn.dataset.act; const c=contacts.find(x=>x.id===id); if(!c) return; if(act==='edit') loadToForm(c); if(act==='del'){ if(confirm('Delete this contact?')) deleteContact(id); } if(act==='mark'){ c.lastContact=new Date().toISOString(); upsertContact(c); } });
+      document.querySelector('#selectAll').addEventListener('change', (e)=>{ const inView=contacts.filter(c=>filterContact(c)).map(c=>c.id); if(e.target.checked) inView.forEach(id=>selectedIds.add(id)); else inView.forEach(id=>selectedIds.delete(id)); renderContacts(); });
+
+      const scriptSelect=document.querySelector('#scriptSelect'); if(scriptSelect){ scriptSelect.addEventListener('change', updatePreview); }
+      document.querySelector('#newScriptBtn').addEventListener('click', ()=>openScriptModal());
+      document.querySelector('#editScriptBtn').addEventListener('click', ()=>{ const sc=currentScript(); if(!sc) return; openScriptModal(sc); });
+      document.querySelector('#deleteScriptBtn').addEventListener('click', ()=>{ const sc=currentScript(); if(!sc) return; if(!confirm('Delete script "'+sc.name+'"?')) return; scripts=scripts.filter(s=>s.id!==sc.id); localStorage.setItem(STORAGE.scripts, JSON.stringify(scripts)); renderScripts(); });
+
+      document.querySelector('#genWhatsAppBtn').addEventListener('click', generateWhatsAppLinks);
+      document.querySelector('#openAllWA').addEventListener('click', openAllWhatsApp);
+      document.querySelector('#copyWAMessages').addEventListener('click', copyAllWhatsAppMessages);
+      document.querySelector('#composeEmailBtn').addEventListener('click', composeBulkEmail);
+      document.querySelector('#copyEmailList').addEventListener('click', copyEmailList);
+      document.querySelector('#markContacted').addEventListener('click', markSelectedContactedNow);
+
+      document.querySelector('#waLinks').addEventListener('click', (e)=>{ const btn=e.target.closest('button[data-copy]'); if(!btn) return; navigator.clipboard.writeText(btn.dataset.copy).then(()=>{ btn.textContent='Copied'; setTimeout(()=>btn.textContent='Copy Message', 1200); }); });
+
+      const dataDlg=document.querySelector('#dataModal');
+      document.querySelector('#openDataBtn').addEventListener('click', ()=>{ document.querySelector('#storageLocal').checked=settings.mode==='local'; document.querySelector('#storageSheet').checked=settings.mode!=='local'; document.querySelector('#sheetConfig').classList.toggle('hidden', (settings.mode!=='sheet')); document.querySelector('#sheetUrl').value=settings.sheetUrl||''; document.querySelector('#sheetName').value=settings.sheetName||'Contacts'; document.querySelector('#webAppUrl').value=settings.webAppUrl||''; dataDlg.showModal(); });
+      document.querySelector('#cancelData').addEventListener('click', ()=>dataDlg.close());
+      document.querySelector('#storageLocal').addEventListener('change', ()=>document.querySelector('#sheetConfig').classList.add('hidden'));
+      document.querySelector('#storageSheet').addEventListener('change', ()=>document.querySelector('#sheetConfig').classList.remove('hidden'));
+      document.querySelector('#saveData').addEventListener('click', (e)=>{ e.preventDefault(); settings.mode=document.querySelector('#storageSheet').checked?'sheet':'local'; settings.sheetUrl=document.querySelector('#sheetUrl').value.trim(); settings.sheetName=document.querySelector('#sheetName').value.trim()||settings.sheetName||'Contacts'; settings.webAppUrl=document.querySelector('#webAppUrl').value.trim()||settings.webAppUrl; localStorage.setItem(STORAGE.settings, JSON.stringify(settings)); dataDlg.close(); alert('Data source saved.'); });
+      document.querySelector('#btnLoadFromSheet').addEventListener('click', async (e)=>{ e.preventDefault(); settings.mode='sheet'; settings.sheetUrl=document.querySelector('#sheetUrl').value.trim(); settings.sheetName=document.querySelector('#sheetName').value.trim()||settings.sheetName||'Contacts'; settings.webAppUrl=document.querySelector('#webAppUrl').value.trim()||settings.webAppUrl; localStorage.setItem(STORAGE.settings, JSON.stringify(settings)); await loadFromSheet(); });
+      document.querySelector('#btnSaveToSheet').addEventListener('click', async (e)=>{ e.preventDefault(); settings.mode='sheet'; settings.sheetUrl=document.querySelector('#sheetUrl').value.trim(); settings.sheetName=document.querySelector('#sheetName').value.trim()||settings.sheetName||'Contacts'; settings.webAppUrl=document.querySelector('#webAppUrl').value.trim()||settings.webAppUrl; localStorage.setItem(STORAGE.settings, JSON.stringify(settings)); await saveToSheet(); });
+
+      const loginDlg=document.querySelector('#loginModal');
+      document.querySelector('#signInBtn').addEventListener('click', ()=>{ document.querySelector('#loginEmail').value=currentUser?.email||''; document.querySelector('#loginName').value=currentUser?.name||''; document.querySelector('#loginMobile').value=currentUser?.mobile||''; loginDlg.showModal(); });
+      document.querySelector('#cancelLogin').addEventListener('click', ()=>loginDlg.close());
+      document.querySelector('#confirmLogin').addEventListener('click', (e)=>{ e.preventDefault(); const email=document.querySelector('#loginEmail').value.trim(); const name=document.querySelector('#loginName').value.trim(); const mobile=normalizePhoneSA(document.querySelector('#loginMobile').value.trim()); if(!email||!name||!mobile){ alert('Please capture Email, Name and Mobile.'); return; } currentUser={email,name,mobile}; localStorage.setItem(STORAGE.user, JSON.stringify(currentUser)); settings.mode='sheet'; settings.sheetName = (name||'user').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24) + '_' + String((mobile||'').replace(/\D/g,'')).slice(-4); localStorage.setItem(STORAGE.settings, JSON.stringify(settings)); loginDlg.close(); refreshUserUI(); });
+      document.querySelector('#signOutBtn').addEventListener('click', ()=>{ if(!confirm('Sign out and clear local contacts?')) return; localStorage.removeItem(STORAGE.user); currentUser=null; contacts=[]; localStorage.setItem(STORAGE.contacts, JSON.stringify(contacts)); renderContacts(); refreshUserUI(); });
+
+      refreshUserUI();
+    });
+
+    function openScriptModal(existing=null){ const dialog=document.querySelector('#scriptModal'); document.querySelector('#scriptModalTitle').textContent = existing ? 'Edit Script' : 'New Script'; document.querySelector('#scriptName').value = existing?.name || ''; document.querySelector('#scriptSubject').value = existing?.subject || ''; document.querySelector('#scriptBody').value = existing?.body || ''; dialog.showModal(); document.querySelector('#saveScript').onclick = (e)=>{ e.preventDefault(); const name=document.querySelector('#scriptName').value.trim(); if(!name) return; const subj=document.querySelector('#scriptSubject').value.trim(); const body=document.querySelector('#scriptBody').value; if(existing){ existing.name=name; existing.subject=subj; existing.body=body; } else { scripts.unshift({ id: uid(), name, subject: subj, body }); } localStorage.setItem(STORAGE.scripts, JSON.stringify(scripts)); renderScripts(); dialog.close(); }; document.querySelector('#cancelScript').onclick = ()=> dialog.close(); }
+  </script>
+</body>
+</html>
